@@ -33,16 +33,22 @@ type Request struct {
 
 func parseRequest(bytes []byte) (*Request, error) {
 	b := strings.Split(string(bytes), "\n")
-	if len(b) < 1 {
+	if len(b) < 2 {
 		return nil, ErrInvalidRequest
 	}
 
 	// header format
 	// DBTYPE: METHOD
+	//
+	// e.g
 	// sqlite3: [connection, create, update, delete, insert, select]
 	h := strings.Split(b[0], ":")
+	if len(h) < 2 {
+		return nil, ErrInvalidRequest
+	}
 	dbtype := strings.TrimSpace(h[0])
 	method := strings.TrimSpace(h[1])
+
 	body := strings.TrimSpace(strings.Join(b[1:], "\n"))
 
 	req := &Request{

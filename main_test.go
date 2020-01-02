@@ -62,27 +62,51 @@ select * from users
 }
 
 func TestParseRequest(t *testing.T) {
-	bytes := []byte(`sqlite3: connection
+
+	t.Run("test_request", func(t *testing.T) {
+		bytes := []byte(`sqlite3: connection
 dns=:memory:
 `)
 
-	req, err := parseRequest(bytes)
-	if err != nil {
-		t.Fatalf("want nil, got error: %s", err)
-	}
+		req, err := parseRequest(bytes)
+		if err != nil {
+			t.Fatalf("want nil, got error: %s", err)
+		}
 
-	dbtype := "sqlite3"
-	if req.DBType != dbtype {
-		t.Fatalf("want:%s, got:%s", dbtype, req.DBType)
-	}
+		dbtype := "sqlite3"
+		if req.DBType != dbtype {
+			t.Fatalf("want:%s, got:%s", dbtype, req.DBType)
+		}
 
-	method := "connection"
-	if req.Method != method {
-		t.Fatalf("want:%s, got:%s", method, req.Method)
-	}
+		method := "connection"
+		if req.Method != method {
+			t.Fatalf("want:%s, got:%s", method, req.Method)
+		}
 
-	body := `dns=:memory:`
-	if req.Body != body {
-		t.Fatalf("want:%s, got:%s", body, req.Body)
-	}
+		body := `dns=:memory:`
+		if req.Body != body {
+			t.Fatalf("want:%s, got:%s", body, req.Body)
+		}
+
+	})
+
+	t.Run("test_invalid_request", func(t *testing.T) {
+		tests := []struct {
+			input  []byte
+			except error
+		}{
+			{input: []byte(`sqlite3`), except: ErrInvalidRequest},
+			{input: []byte(`sqlite3\naaa`), except: ErrInvalidRequest},
+			{input: []byte(`sqlite3: connection`), except: ErrInvalidRequest},
+			{input: []byte("sqlite3: connection\ndns=:memory:"), except: nil},
+		}
+
+		for _, te := range tests {
+			_, err := parseRequest(te.input)
+			if err != te.except {
+				t.Fatalf("want: %s, got:%s", te.except, err)
+			}
+		}
+	})
+
 }
