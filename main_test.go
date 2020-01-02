@@ -1,25 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
-var db *sqlx.DB
-
-func init() {
-	var err error
-	db, err = sqlx.Open("sqlite3", ":memory:")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+func TestNewDBConn(t *testing.T) {
+	t.Run("new db connection", func(t *testing.T) {
+		if err := doNewDBConn("sqlite3", ":memory:"); err != nil {
+			t.Fatalf("can't connect db: %s", err)
+		}
+	})
 }
 
 func TestDoExecSQL(t *testing.T) {
@@ -27,7 +19,7 @@ func TestDoExecSQL(t *testing.T) {
 		sql := `
 create table users(id int, name varchar(255))
 `
-		if err := doExecSQL(db, sql); err != nil {
+		if err := doExecSQL("sqlite3", sql); err != nil {
 			t.Fatal(errors.Wrap(err, "can't create table"))
 		}
 	})
@@ -35,7 +27,7 @@ create table users(id int, name varchar(255))
 	t.Run("insert", func(t *testing.T) {
 		sql := `insert into users values (1, "gorilla")`
 
-		if err := doExecSQL(db, sql); err != nil {
+		if err := doExecSQL("sqlite3", sql); err != nil {
 			t.Fatal(errors.Wrap(err, "can't insert data"))
 		}
 	})
@@ -45,7 +37,7 @@ func TestDoQuerySQL(t *testing.T) {
 	sql := `
 select * from users
 `
-	res, err := doQuerySQL(db, sql)
+	res, err := doQuerySQL("sqlite3", sql)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "can't query from users table"))
 	}
