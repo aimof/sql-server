@@ -60,3 +60,29 @@ select * from users
 		t.Fatalf("want: %s, got: %s", "gorilla", name)
 	}
 }
+
+func TestParseRequest(t *testing.T) {
+	bytes := []byte(`sqlite3: connection
+dns=:memory:
+`)
+
+	req, err := parseRequest(bytes)
+	if err != nil {
+		t.Fatalf("want nil, got error: %s", err)
+	}
+
+	dbtype := "sqlite3"
+	if req.DBType != dbtype {
+		t.Fatalf("want:%s, got:%s", dbtype, req.DBType)
+	}
+
+	method := "connection"
+	if req.Method != method {
+		t.Fatalf("want:%s, got:%s", method, req.Method)
+	}
+
+	body := `dns=:memory:`
+	if req.Body != body {
+		t.Fatalf("want:%s, got:%s", body, req.Body)
+	}
+}

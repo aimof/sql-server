@@ -6,12 +6,14 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
 
 var (
-	ErrNotSupportDB = errors.New("not support db type")
+	ErrNotSupportDB   = errors.New("not support db type")
+	ErrInvalidRequest = errors.New("invalid request")
 )
 
 func fatalError(err error) {
@@ -26,12 +28,30 @@ type Connectiion struct {
 type Request struct {
 	DBType string
 	Method string
-	SQL    string
+	Body   string
 }
 
-func parseRequest(bytes []byte) Request {
-	var req Request
-	return req
+func parseRequest(bytes []byte) (*Request, error) {
+	b := strings.Split(string(bytes), "\n")
+	if len(b) < 1 {
+		return nil, ErrInvalidRequest
+	}
+
+	// header format
+	// DBTYPE: METHOD
+	// sqlite3: [connection, create, update, delete, insert, select]
+	h := strings.Split(b[0], ":")
+	dbtype := strings.TrimSpace(h[0])
+	method := strings.TrimSpace(h[1])
+	body := strings.TrimSpace(strings.Join(b[1:], "\n"))
+
+	req := &Request{
+		DBType: dbtype,
+		Method: method,
+		Body:   body,
+	}
+
+	return req, nil
 }
 
 func doExecSQL(db *sqlx.DB, sql string) error {
@@ -88,7 +108,7 @@ func recive(conn net.Conn) {
 			}
 		}
 
-		fmt.Println(string(buf))
+		fmt.Print(strings.Split(string(buf), "\n"))
 	}
 }
 
