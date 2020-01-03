@@ -51,6 +51,7 @@ type Request struct {
 
 type Response struct {
 	Status string `json:"status"`
+	Method string `json:"method"`
 	Body   string `json:"body"`
 }
 
@@ -176,9 +177,10 @@ func writeToConn(conn net.Conn, msg string) {
 	conn.Write([]byte(msg))
 }
 
-func writeResponse(conn net.Conn, status, body string) {
+func writeResponse(conn net.Conn, status, method, body string) {
 	res := Response{
 		Status: status,
+		Method: method,
 		Body:   body,
 	}
 
@@ -205,40 +207,40 @@ func recive(conn net.Conn) {
 		req, err := parseRequest(buf)
 
 		if err != nil {
-			writeResponse(conn, StatusError, err.Error())
+			writeResponse(conn, StatusError, "unknown", err.Error())
 			continue
 		}
 
 		if err := validateRequest(req); err != nil {
-			writeResponse(conn, StatusError, err.Error())
+			writeResponse(conn, StatusError, req.Method, err.Error())
 			continue
 		}
 
 		if req.Method == "connection" {
 			dsn, err := parseDSN(req.Body)
 			if err != nil {
-				writeResponse(conn, StatusError, err.Error())
+				writeResponse(conn, StatusError, req.Method, err.Error())
 				continue
 			}
 
 			if err := doNewDBConn(req.DBType, dsn); err != nil {
-				writeResponse(conn, StatusError, err.Error())
+				writeResponse(conn, StatusError, req.Method, err.Error())
 				continue
 			}
 
-			writeResponse(conn, StatusSuccess, "connected to "+req.DBType)
+			writeResponse(conn, StatusSuccess, req.Method, req.DBType)
 		} else if req.Method == "exec" {
 			if err := doExecSQL(req.DBType, req.Body); err != nil {
-				writeResponse(conn, StatusError, err.Error())
+				writeResponse(conn, StatusError, req.Method, err.Error())
 				continue
 			}
 
-			writeResponse(conn, StatusSuccess, "execute sql success")
+			writeResponse(conn, StatusSuccess, req.Method, "execute sql success")
 		} else if req.Method == "query" {
 			result, err := doQuerySQL(req.DBType, req.Body)
 
 			if err != nil {
-				writeResponse(conn, StatusError, err.Error())
+				writeResponse(conn, StatusError, req.Method, err.Error())
 				continue
 			}
 
@@ -248,7 +250,7 @@ func recive(conn net.Conn) {
 				continue
 			}
 
-			writeResponse(conn, StatusSuccess, string(res))
+			writeResponse(conn, StatusSuccess, req.Method, string(res))
 		}
 	}
 }
