@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -168,6 +169,10 @@ func doNewDBConn(dbtype, dns string) error {
 
 	if _, ok := connectionPool.conn[dbtype]; ok {
 		return nil
+	}
+
+	if err := db.Ping(); err != nil {
+		return err
 	}
 	connectionPool.conn[dbtype] = db
 	return nil
